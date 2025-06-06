@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Satoshi", "sans-serif";
+  --color-lavender: oklch(0.75 0.15 315);
+  --color-custom-green: oklch(0.80 0.20 140);
+  --color-dark-bg: oklch(0.2 0.02 280);
+  --color-dark-surface: oklch(0.25 0.02 280);
+  --color-dark-text: oklch(0.95 0.02 280);
+  --spacing: 0.25rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply text-gray-900 antialiased bg-white dark:bg-dark-bg dark:text-dark-text;
+  }
+
+  ::selection {
+    @apply bg-lavender/20;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-6 py-2 rounded-lg font-semibold transition-colors;
+  }
+
+  .btn-primary {
+    @apply bg-lavender text-white hover:bg-lavender/90 dark:bg-lavender/80 dark:hover:bg-lavender/70;
+  }
+
+  .btn-outline {
+    @apply border-2 border-lavender text-lavender hover:bg-lavender hover:text-white 
+    dark:border-lavender/70 dark:text-lavender/70 dark:hover:bg-lavender/20 dark:hover:text-white;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-lg p-6 
+    dark:bg-dark-surface dark:shadow-none dark:ring-1 dark:ring-white/10;
+  }
+}
+
+@source inline("bg-lavender bg-custom-green text-lavender text-custom-green border-lavender border-custom-green hover:bg-lavender hover:bg-custom-green hover:bg-lavender/90 dark:bg-dark-bg dark:text-dark-text dark:bg-dark-surface dark:border-lavender/70 dark:text-lavender/70 dark:hover:bg-lavender/20 dark:ring-1 dark:ring-white/10 dark:shadow-none");
