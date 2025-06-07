@@ -6,7 +6,7 @@ const contactInfo = {
   location: 'Paris, France',
   social: {
     github: 'https://github.com/ABDULMVLICK',
-    linkedin: 'https://www.linkedin.com/in/Abdou%20Malick%20SEIBOU'
+    linkedin: 'https://www.linkedin.com/in/abdou-malick-seibou-192356267/'
   }
 };
 
