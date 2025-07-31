@@ -1,4 +1,5 @@
-import { Project } from '../types/Project';
+// src/utils/localStorage.ts
+import type { Project } from '../types/Project';
 
 const PROJECTS_KEY = 'portfolio_projects';
 
@@ -30,4 +31,4 @@ export const deleteProject = (projectId: string): void => {
   const projects = getProjects();
   const filteredProjects = projects.filter((p) => p.id !== projectId);
   saveProjects(filteredProjects);
-}; 
+};

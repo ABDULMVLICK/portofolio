@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../config/supabase';
 import type { Project, ProjectType } from '../types/Project';
 
 interface ProjectFormProps {
@@ -52,9 +53,13 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
     githubUrl: '',
     demoUrl: '',
     imageUrl: '',
+    gifUrl: '',
   });
 
   const [error, setError] = useState<string | null>(null);
+  const [demoFile, setDemoFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (project) {
@@ -68,26 +73,93 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
         githubUrl: project.githubUrl || '',
         demoUrl: project.demoUrl || '',
         imageUrl: project.imageUrl || '',
+        gifUrl: project.gifUrl || '',
       });
+      setFilePreview(project.gifUrl || project.imageUrl || null);
+      setDemoFile(null);
+    } else {
+      // Clear form for new project entry
+      setFormData({
+        title: '',
+        description: '',
+        technologies: [],
+        date: '',
+        displayDate: '',
+        type: 'web',
+        githubUrl: '',
+        demoUrl: '',
+        imageUrl: '',
+        gifUrl: '',
+      });
+      setFilePreview(null);
+      setDemoFile(null);
     }
   }, [project]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsUploading(true);
 
     try {
+      const finalFormData = { ...formData };
+
+      if (demoFile) {
+        const fileExt = demoFile.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = fileName;
+
+        const { error: uploadError } = await supabase.storage
+          .from('project-demos')
+          .upload(filePath, demoFile);
+
+        if (uploadError) {
+          throw new Error(`Erreur d'upload : ${uploadError.message}`);
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('project-demos')
+          .getPublicUrl(filePath);
+        
+        const uploadedFileUrl = publicUrlData.publicUrl;
+
+        if (demoFile.type.startsWith('image/gif') || demoFile.type.startsWith('video/')) {
+          finalFormData.gifUrl = uploadedFileUrl;
+          finalFormData.imageUrl = ''; 
+        } else if (demoFile.type.startsWith('image/')) {
+          finalFormData.imageUrl = uploadedFileUrl;
+          finalFormData.gifUrl = '';
+        }
+      }
+
       const now = new Date().toISOString();
       const projectData: Project = {
         id: project?.id || crypto.randomUUID(),
-        ...formData,
-        date: formatDateForDB(formData.displayDate),
+        ...finalFormData,
+        date: formatDateForDB(finalFormData.displayDate),
         createdAt: project?.createdAt || now,
         updatedAt: now,
       };
       onSubmit(projectData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setDemoFile(file);
+
+    if (filePreview) {
+      URL.revokeObjectURL(filePreview);
+    }
+
+    if (file) {
+      setFilePreview(URL.createObjectURL(file));
+    } else {
+      setFilePreview(null);
     }
   };
 
@@ -215,6 +287,32 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
       </div>
 
       <div>
+        <label htmlFor="demoFile" className="block text-sm font-medium text-gray-700">
+          Image ou Vidéo de Démo (Upload)
+        </label>
+        <input
+          type="file"
+          id="demoFile"
+          onChange={handleFileChange}
+          accept="image/*,video/*"
+          className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-lavender-light file:text-lavender hover:file:bg-lavender-dark"
+        />
+        <p className="mt-1 text-sm text-gray-500">
+          Uploader un fichier remplacera les URLs manuelles d'image et de GIF.
+        </p>
+        {filePreview && (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Aperçu</h4>
+            {(demoFile?.type.startsWith('video/') || (!demoFile && (filePreview.includes('.mp4') || filePreview.includes('.webm')))) ? (
+              <video src={filePreview} controls className="max-w-xs rounded-lg shadow-md" />
+            ) : (
+              <img src={filePreview} alt="Aperçu" className="max-w-xs rounded-lg shadow-md" />
+            )}
+          </div>
+        )}
+      </div>
+
+      <div>
         <label htmlFor="demoUrl" className="block text-sm font-medium text-gray-700">
           URL Démo (optionnel)
         </label>
@@ -240,19 +338,37 @@ export default function ProjectForm({ project, onSubmit, onCancel }: ProjectForm
         />
       </div>
 
-      <div className="flex justify-end space-x-4">
+      <div>
+        <label htmlFor="gifUrl" className="block text-sm font-medium text-gray-700">
+          URL GIF Démonstratif (optionnel)
+        </label>
+        <input
+          type="url"
+          id="gifUrl"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-lavender focus:ring-lavender sm:text-sm"
+          value={formData.gifUrl}
+          onChange={(e) => setFormData(prev => ({ ...prev, gifUrl: e.target.value }))}
+          placeholder="https://exemple.com/demo.gif"
+        />
+        <p className="mt-1 text-sm text-gray-500">
+          Ajoutez un GIF pour montrer votre projet en action. Il sera cliquable pour s'ouvrir en modal.
+        </p>
+      </div>
+
+      <div className="flex justify-end gap-4">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lavender"
+          className="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lavender"
         >
           Annuler
         </button>
         <button
           type="submit"
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-lavender hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lavender"
+          disabled={isUploading}
+          className="inline-flex justify-center rounded-md border border-transparent bg-lavender py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lavender disabled:opacity-50"
         >
-          {project ? 'Modifier' : 'Ajouter'}
+          {isUploading ? 'Envoi en cours...' : (project ? 'Mettre à jour' : 'Créer le projet')}
         </button>
       </div>
     </form>

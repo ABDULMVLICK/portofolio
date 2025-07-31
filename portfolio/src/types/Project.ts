@@ -10,6 +10,7 @@ export interface Project {
   githubUrl?: string;
   demoUrl?: string;
   imageUrl?: string;
+  gifUrl?: string;
   createdAt: string;
   updatedAt: string;
 } 
