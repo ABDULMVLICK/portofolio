@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 
 const skills = {
   frontend: ['HTML', 'CSS', 'JavaScript', 'React', 'Tailwind CSS', 'Bootstrap', 'GSAP'],
-  backend: ['Node.js', 'PHP', 'MySQL', 'Symfony'],
+  backend: ['Node.js', 'PHP', 'MySQL', 'Symfony', 'Supabase'],
   other: ['Docker', 'Firebase', 'MongoDB', 'Git', 'Vercel'],
   design: ['Figma', 'Photoshop', 'WordPress'],
   applications: ['Desktop (Electron)', 'Mobile (React Native + Expo)']
